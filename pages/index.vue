@@ -1,5 +1,3 @@
-
-
 <template>
   <div class="btc-price-box bg-gray-100 rounded-xl p-6 font-sans max-w-2xl mx-auto mt-8 shadow">
     <h2 class="text-2xl font-bold mb-2 text-gray-800">Canlı BTC/USDT Fiyatı:</h2>
@@ -43,44 +41,32 @@ let socket = null;
 const priceHistory = ref([]); 
 const timeHistory = ref([]);
 
-onMounted(() => {
-  socket = new WebSocket('wss://data-stream.binance.vision/ws/btcusdt@trade');
-  socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    const price = parseFloat(data.p).toFixed(2);
-    const time = new Date(data.T).toLocaleTimeString();
-    btcPrice.value = price;
-    trades.value.unshift({
-      price,
-      quantity: parseFloat(data.q),
-      time
+async function fetchDailyHistory() {
+  try {
+    const response = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=1440');
+    const data = await response.json();
+    priceHistory.value = data.map(item => Number(parseFloat(item[4]).toFixed(2)));
+    timeHistory.value = data.map(item => {
+      const date = new Date(item[0]);
+      return date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
     });
-    if (trades.value.length > 10) trades.value.pop();
-    priceHistory.value.push(Number(price));
-    timeHistory.value.push(time);
-    if (priceHistory.value.length > 30) {
-      priceHistory.value.shift();
-      timeHistory.value.shift();
-    }
-    if (chartInstance) {
-      chartInstance.data.labels = [...timeHistory.value];
-      chartInstance.data.datasets[0].data = [...priceHistory.value];
-      chartInstance.update();
-    }
-  };
-  socket.onerror = (error) => {
-    console.error('WebSocket error:', error);
-  };
+  } catch (e) {
+    console.error('Geçmiş veri alınamadı:', e);
+  }
+}
+
+onMounted(async () => {
+  await fetchDailyHistory();
 
   if (chartRef.value) {
     chartInstance = new Chart(chartRef.value, {
       type: 'line',
       data: {
-        labels: [],
+        labels: [...timeHistory.value],
         datasets: [
           {
             label: 'BTC/USDT Fiyatı',
-            data: [],
+            data: [...priceHistory.value],
             borderColor: '#f7931a',
             backgroundColor: 'rgba(247, 147, 26, 0.1)',
             tension: 0.2,
@@ -97,7 +83,7 @@ onMounted(() => {
         scales: {
           x: {
             title: { display: true, text: 'Zaman' },
-            ticks: { maxTicksLimit: 8 },
+            ticks: { maxTicksLimit: 24 },
           },
           y: {
             title: { display: true, text: 'Fiyat (USD)' },
@@ -106,6 +92,34 @@ onMounted(() => {
       },
     });
   }
+
+  socket = new WebSocket('wss://data-stream.binance.vision/ws/btcusdt@trade');
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    const price = parseFloat(data.p).toFixed(2);
+    const time = new Date(data.T).toLocaleTimeString();
+    btcPrice.value = price;
+    trades.value.unshift({
+      price,
+      quantity: parseFloat(data.q),
+      time
+    });
+    if (trades.value.length > 10) trades.value.pop();
+    priceHistory.value.push(Number(price));
+    timeHistory.value.push(time);
+    if (priceHistory.value.length > 1440) {
+      priceHistory.value.shift();
+      timeHistory.value.shift();
+    }
+    if (chartInstance) {
+      chartInstance.data.labels = [...timeHistory.value];
+      chartInstance.data.datasets[0].data = [...priceHistory.value];
+      chartInstance.update();
+    }
+  };
+  socket.onerror = (error) => {
+    console.error('WebSocket error:', error);
+  };
 });
 
 onBeforeUnmount(() => {
