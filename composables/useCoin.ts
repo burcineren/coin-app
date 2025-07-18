@@ -1,23 +1,23 @@
 // BTC WebSocket - Her kline verisini al
-
+export const priceHistory = ref<number[]>([]);
+export const timeHistory = ref<string[]>([]);
+export const ethPriceHistory = ref<number[]>([]);
+export const solPriceHistory = ref<number[]>([]);
+export const lastBTC = ref<number | null>(null);
+export const lastETH = ref<number | null>(null);
+export const lastSOL = ref<number | null>(null);
+export const lastUpdate = ref<string>('');
 export const addDataToChart = (time: string, btc: number | null | undefined, eth: number | null | undefined, sol: number | null | undefined) => {
-    const priceHistory = ref();
-    const timeHistory = ref();
-    const ethPriceHistory = ref();
-    const solPriceHistory = ref();
-    const lastBTC = ref();
+
 
     console.log('Veri geldi:', { time, btc, eth, sol });
-    const lastETH = ref();
-    const lastSOL = ref();
-    const lastUpdate = ref('');
-    let chartInstance = null;
+
     // Son fiyatları güncelle
     if (btc !== undefined) lastBTC.value = btc;
     if (eth !== undefined) lastETH.value = eth;
     if (sol !== undefined) lastSOL.value = sol;
 
-    // Her veri geldiğinde grafik güncelle
+    // Her veri geldiğinde grafik verilerini güncelle
     timeHistory.value.push(time);
     priceHistory.value.push(lastBTC.value || 0);
     ethPriceHistory.value.push(lastETH.value || 0);
@@ -32,15 +32,6 @@ export const addDataToChart = (time: string, btc: number | null | undefined, eth
     }
 
     lastUpdate.value = new Date().toLocaleTimeString();
-
-    // Grafik güncelle
-    if (chartInstance && chartInstance.data) {
-        chartInstance.data.labels = [...timeHistory.value];
-        chartInstance.data.datasets[0].data = [...priceHistory.value];
-        chartInstance.data.datasets[1].data = [...ethPriceHistory.value];
-        chartInstance.data.datasets[2].data = [...solPriceHistory.value];
-        chartInstance.update('none');
-    }
 }
 export const connectKlineWebSocket = () => {
 
@@ -116,9 +107,6 @@ export const connectSolKlineWebSocket = () => {
 export const loadInitialData = async () => {
 
     try {
-        const lastBTC = ref();
-        const lastETH = ref();
-        const lastSOL = ref();
         // BTC fiyatı
         const btcResponse = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
         const btcData = await btcResponse.json();

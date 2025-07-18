@@ -124,12 +124,32 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref } from "vue";
+import { onMounted, onBeforeUnmount, ref, watch } from "vue";
 import Chart from "chart.js/auto";
+import {
+  priceHistory,
+  ethPriceHistory,
+  solPriceHistory,
+  timeHistory,
+  lastBTC,
+  lastETH,
+  lastSOL,
+  lastUpdate,
+  addDataToChart,
+  connectKlineWebSocket,
+  connectEthKlineWebSocket,
+  connectSolKlineWebSocket,
+  loadInitialData
+} from "~/composables/useCoin";
 
 const btcPrice = ref(null);
-
-// Basit veri ekleme fonksiyonu
+const trades = ref([]);
+const chartRef = ref(null);
+let chartInstance = null;
+let socket = null;
+let klineSocket = null;
+let ethKlineSocket = null;
+let solKlineSocket = null;
 
 onMounted(async () => {
   // Dizileri temizle
@@ -311,19 +331,21 @@ onMounted(async () => {
   };
 });
 
+watch([priceHistory, ethPriceHistory, solPriceHistory, timeHistory], () => {
+  if (chartInstance && chartInstance.data) {
+    chartInstance.data.labels = [...timeHistory.value];
+    chartInstance.data.datasets[0].data = [...priceHistory.value];
+    chartInstance.data.datasets[1].data = [...ethPriceHistory.value];
+    chartInstance.data.datasets[2].data = [...solPriceHistory.value];
+    chartInstance.update('none');
+  }
+});
+
 onBeforeUnmount(() => {
   if (socket && socket.readyState === WebSocket.OPEN) {
     socket.close();
   }
-  if (klineSocket && klineSocket.readyState === WebSocket.OPEN) {
-    klineSocket.close();
-  }
-  if (ethKlineSocket && ethKlineSocket.readyState === WebSocket.OPEN) {
-    ethKlineSocket.close();
-  }
-  if (solKlineSocket && solKlineSocket.readyState === WebSocket.OPEN) {
-    solKlineSocket.close();
-  }
+  // WebSocket'ler composable'da local değişken olarak tutuluyorsa burada kapatmaya gerek yok
   if (chartInstance) {
     chartInstance.destroy();
   }
