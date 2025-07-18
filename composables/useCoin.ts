@@ -1,4 +1,3 @@
-// BTC WebSocket - Her kline verisini al
 export const priceHistory = ref<number[]>([]);
 export const timeHistory = ref<string[]>([]);
 export const ethPriceHistory = ref<number[]>([]);
@@ -12,18 +11,18 @@ export const addDataToChart = (time: string, btc: number | null | undefined, eth
 
     console.log('Veri geldi:', { time, btc, eth, sol });
 
-    // Son fiyatları güncelle
+    // Son fiyatları güncelleme
     if (btc !== undefined) lastBTC.value = btc;
     if (eth !== undefined) lastETH.value = eth;
     if (sol !== undefined) lastSOL.value = sol;
 
-    // Her veri geldiğinde grafik verilerini güncelle
+    // Her veri geldiğinde grafik verilerini güncelleme
     timeHistory.value.push(time);
     priceHistory.value.push(lastBTC.value || 0);
     ethPriceHistory.value.push(lastETH.value || 0);
     solPriceHistory.value.push(lastSOL.value || 0);
 
-    // Maksimum 20 veri tut
+
     if (timeHistory.value.length > 20) {
         timeHistory.value.shift();
         priceHistory.value.shift();
@@ -122,7 +121,7 @@ export const loadInitialData = async () => {
         const solData = await solResponse.json();
         lastSOL.value = parseFloat(solData.price);
 
-        // İlk veriyi grafiğe ekle
+        // İlk veriyi grafiğe ekleme
         addDataToChart(new Date().toLocaleTimeString(), lastBTC.value, lastETH.value, lastSOL.value);
 
         console.log('İlk veriler yüklendi:', { btc: lastBTC.value, eth: lastETH.value, sol: lastSOL.value });
